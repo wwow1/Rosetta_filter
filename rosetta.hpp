@@ -12,29 +12,29 @@
 
 namespace elastic_rose
 {
-
-    std::vector<u64> allocateSpace(double total_size, double beta, int n) {
-        std::vector<u64> layers(n);
-        
-        // 如果 beta 是 1，则每层空间平均分配
-        if (beta == 1.0) {
-            double each_layer_size = total_size / n;
-            std::fill(layers.begin(), layers.end(), each_layer_size);
-        } else {
-            // 计算第一层的空间大小 s1
-            double s1 = total_size * (1 - beta) / (1 - std::pow(beta, n));
-            
-            // 计算每一层的空间
-            for (int i = 0; i < n; ++i) {
-                layers[i] = s1 * std::pow(beta, i);
-            }
-        }
-        return layers;
-    }
-
     class Rosetta
     {
     public:
+
+        std::vector<u64> allocateSpace(double total_size, double beta, int n) {
+            std::vector<u64> layers(n);
+            
+            // 如果 beta 是 1，则每层空间平均分配
+            if (beta == 1.0) {
+                double each_layer_size = total_size / n;
+                std::fill(layers.begin(), layers.end(), each_layer_size);
+            } else {
+                // 计算第一层的空间大小 s1
+                double s1 = total_size * (1 - beta) / (1 - std::pow(beta, n));
+                
+                // 计算每一层的空间
+                for (int i = 0; i < n; ++i) {
+                    layers[i] = std::min(min_size_, u64(s1 * std::pow(beta, i)));
+                }
+            }
+            return layers;
+        }
+
         Rosetta(){};
         // 默认alpha能被64整除, beta < 1, p是预期的假阳性率
         Rosetta(u32 total_size, u32 alpha, double beta, double false_positive)
@@ -48,6 +48,7 @@ namespace elastic_rose
             // double pre_time1, pre_time2, pre_time = 0, build_time = 0;
             for (int i = levels_ - 1; i >= 0; --i)
             {
+                std::cout << "total_size " << alloc[total_size] << " expected_false_positive_ " << expected_false_positive_ << std::endl;
                 bfs[i] = new CountingBloomFilter(alloc[total_size], expected_false_positive_, i);
             }
 
@@ -104,7 +105,7 @@ namespace elastic_rose
         u32 levels_;
         u32 alpha_;   // 相邻层之间的位差
         double beta_; // 相邻层之间的空间差异
-        u32 min_size_ = 256;
+        u64 min_size_ = 256;
         double expected_false_positive_;
         u64 R_;
 
