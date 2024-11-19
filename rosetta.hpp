@@ -193,10 +193,10 @@ namespace elastic_rose
         u64 move = (levels_ - l - 1) * alpha_;
         u64 end = pow(2, alpha_) - 1;
         for (int i = 0; i <= end; ++i, ++base) {
-            u64 next = (l == 0 && i == end) ? UINT64_MAX : ((base + 1) << move) + p;
+            u64 next = (l == 0 && i == end) ? UINT64_MAX : (((base + 1) << move) + p - 1);
             u64 cur = (base << move) + p;
-            printf("l = %lx, range_query: cur = %lx, next = %lx, low = %lx, high = %lx\n", l, cur, next, low, high);
-            if (low >= next) continue;
+            // printf("l = %lx, range_query: cur = %lx, next = %lx, low = %lx, high = %lx\n", l, cur, next, low, high);
+            if (low > next) continue;
             if (cur > high) break;
             if (low <= cur && next <= high ) {
                 if (doubt(cur, next, l))    return true;
@@ -218,9 +218,9 @@ namespace elastic_rose
         u64 base = 0;
         u64 move = (levels_ - l - 2) * alpha_;
         u64 end = pow(2, alpha_) - 1;
-        for (u32 i = 0; i <= end; i++) {
+        for (u32 i = 0; i <= end; i++, ++base) {
             u64 cur = low + (base << move);
-            u64 next = ((base + 1) << move) + low;
+            u64 next = ((base + 1) << move) + low - 1;
             if (doubt(cur, next, l + 1))
                 return true;
         }

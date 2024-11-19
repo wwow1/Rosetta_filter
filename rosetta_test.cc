@@ -24,7 +24,7 @@ void u64_test(Rosetta &rose)
     printf("%d %s\n", 2, rose.lookupKey(2) ? "exist" : "not exist");
     printf("%d %s\n", 13, rose.lookupKey(13) ? "exist" : "not exist");
     printf("%d %s\n", 202, rose.lookupKey(202) ? "exist" : "not exist");
-    printf("%d %s\n", 203, rose.lookupKey(203) ? "exist" : "not exist");
+    printf("%d %s\n", 123, rose.lookupKey(123) ? "exist" : "not exist");
 
     printf("\n");
 
