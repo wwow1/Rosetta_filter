@@ -28,8 +28,9 @@ namespace elastic_rose
                 double s1 = total_size * (1 - beta) / (1 - std::pow(beta, n));
                 
                 // 计算每一层的空间
-                for (int i = 0; i < n; ++i) {
-                    layers[i] = std::min(min_size_, u64(s1 * std::pow(beta, i)));
+                for (int i = levels_ - 1; i >= 0; --i) {
+                    u64 l = levels_ - i - 1;
+                    layers[i] = std::max(min_size_, u64(s1 * std::pow(beta, l)));
                 }
             }
             return layers;
@@ -48,8 +49,8 @@ namespace elastic_rose
             // double pre_time1, pre_time2, pre_time = 0, build_time = 0;
             for (int i = levels_ - 1; i >= 0; --i)
             {
-                std::cout << "total_size " << alloc[total_size] << " expected_false_positive_ " << expected_false_positive_ << std::endl;
-                bfs[i] = new CountingBloomFilter(alloc[total_size], expected_false_positive_, i);
+                std::cout << "total_size " << alloc[i] << " expected_false_positive_ " << expected_false_positive_ << std::endl;
+                bfs[i] = new CountingBloomFilter(alloc[i], expected_false_positive_, i);
             }
 
             // std::cout << "pre_time:" << pre_time << std::endl;
@@ -70,22 +71,28 @@ namespace elastic_rose
 
         void insertKey(u64 key)
         {
+            u64 base = pow(2, alpha_) - 1;
+            u64 last = 0;
             for (u32 i = 0; i < levels_; ++i)
             {
-                u64 mask = ~((1ul << (levels_ - i - 1)) - 1);
+                u64 mask = last + (base << (alpha_ * (levels_ - i - 1)));
                 u64 ik = key & mask;
                 bfs[i]->PutKey(ik);
+                last = mask;
             }
         }
         // void insertKey(std::string key);
 
         void DeleteKey(u64 key)
         {
+            u64 base = pow(2, alpha_) - 1;
+            u64 last = 0;
             for (u32 i = 0; i < levels_; ++i)
             {
-                u64 mask = ~((1ul << (levels_ - i - 1)) - 1);
+                u64 mask = last + (base << (alpha_ * (levels_ - i - 1)));
                 u64 ik = key & mask;
                 bfs[i]->DeleteKey(ik);
+                last = mask;
             }
         }
 
@@ -105,7 +112,7 @@ namespace elastic_rose
         u32 levels_;
         u32 alpha_;   // 相邻层之间的位差
         double beta_; // 相邻层之间的空间差异
-        u64 min_size_ = 256;
+        u64 min_size_ = 1024;
         double expected_false_positive_;
         u64 R_;
 
@@ -178,21 +185,26 @@ namespace elastic_rose
 
     inline bool Rosetta::range_query(u64 low, u64 high, u64 p, u64 l)
     {
+        // printf("level = %lx\n", l);
+        if (l == levels_ - 1) {
+            l = levels_ - 1;
+        }
         u64 base = 0;
         u64 move = (levels_ - l - 1) * alpha_;
         u64 end = pow(2, alpha_) - 1;
-        for (int i = 0; i <= end; i++) {
+        for (int i = 0; i <= end; ++i, ++base) {
             u64 next = (l == 0 && i == end) ? UINT64_MAX : ((base + 1) << move) + p;
             u64 cur = (base << move) + p;
-            if (low > next) continue;
+            printf("l = %lx, range_query: cur = %lx, next = %lx, low = %lx, high = %lx\n", l, cur, next, low, high);
+            if (low >= next) continue;
             if (cur > high) break;
-            if (cur >= low && next <= high) {
-                return doubt(cur, next, l);
+            if (low <= cur && next <= high ) {
+                if (doubt(cur, next, l))    return true;
+                continue;
             }
             if (range_query(low, high, cur, l + 1)) {
                 return true;
             }
-            return range_query(low, high, next, l + 1);
         }
         return false;
     }
@@ -200,9 +212,9 @@ namespace elastic_rose
     inline bool Rosetta::doubt(u64 low, u64 high, u64 l)
     {
         // std::cout << "doubt:" << p << ' ' << l << std::endl;
-        if (l > levels_) return true;
         if (!bfs[l]->KeyMayMatch(low))
             return false;
+        if (l == levels_ - 1) return true;
         u64 base = 0;
         u64 move = (levels_ - l - 2) * alpha_;
         u64 end = pow(2, alpha_) - 1;

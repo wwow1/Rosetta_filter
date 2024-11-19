@@ -60,9 +60,9 @@ int main(int argc, char **argv)
 
     std::cout << "=========u64=========" << std::endl;
 
-    std::vector<uint64_t> keys = {2, 3, 13, 19, 23, 29, 31, 37, 123, 202};
+    std::vector<uint64_t> keys = {2, 3, 13, 19, 23, 29, 31, 37, 123, 202, 203};
     // u64 keys[] = {123};
-    Rosetta rose = Rosetta(1024, 4, 0.5, 0.01);
+    Rosetta rose = Rosetta(8 * 1024 * 1024, 4, 0.5, 0.01);
     for (auto key : keys) {
       rose.insertKey(key);
     }
